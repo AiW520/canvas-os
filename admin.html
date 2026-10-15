@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Canvas OS · 管理员控制台</title><link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-topbar"><a class="back-link" href="./">← 返回画布</a><div><p class="eyebrow">CANVAS OS / LOCAL ADMIN</p><h1>管理员控制台</h1></div><div class="top-actions"><span id="currentUser" class="user-badge">登录中</span><span class="local-badge">● 仅本机</span><button id="refreshAdmin">刷新状态</button><button id="logoutBtn">退出</button></div></header>
+    <section class="admin-notice"><strong>本机管理模式</strong><span>此控制台管理当前 Canvas OS 服务、素材目录与浏览器草稿，不提供公网账号、远程权限或云端同步。</span></section>
+    <section class="panel"><div class="panel-head"><div><p class="eyebrow">TEAM BETA</p><h2>内测上线检查</h2></div><button id="checkReadiness">检查内测准备情况</button></div><p class="panel-intro">受邀团队共享素材，草稿保存在各自浏览器。本检查不发起付费生成。</p><div id="readinessList" role="status">点击检查，查看邀请注册、HTTPS、图片生成配置与素材完整性。</div></section>
+    <section class="stat-grid" aria-label="服务概览">
+      <article class="stat"><span>服务状态</span><strong id="serviceState">检查中</strong><small id="serviceDetail">正在读取本机服务</small></article>
+      <article class="stat"><span>素材占用</span><strong id="storageValue">—</strong><small id="storageDetail">—</small></article>
+      <article class="stat"><span>可用素材</span><strong id="assetValue">—</strong><small id="assetDetail">—</small></article>
+      <article class="stat"><span>运行时长</span><strong id="uptimeValue">—</strong><small id="checkedValue">—</small></article>
+    </section>
+    <section class="panel users-panel"><div class="panel-head"><div><p class="eyebrow">IDENTITY & ACCESS</p><h2>用户与权限</h2></div><div class="user-tools"><input id="userSearch" type="search" placeholder="搜索用户名或名称" aria-label="搜索用户"><button id="toggleRegistration">检查注册状态</button></div></div><p class="panel-intro">注册的第一个账号是管理员。成员可使用工作区；管理员可停用账号和调整角色。至少保留一名启用的管理员。</p><div id="userList" class="user-list"><div class="loading">加载用户…</div></div><div class="pagination"><span id="userCount"></span><button id="prevUserPage">上一页</button><button id="nextUserPage">下一页</button></div></section>
+    <section class="admin-grid">
+      <article class="panel assets-panel"><div class="panel-head"><div><p class="eyebrow">ASSET GOVERNANCE</p><h2>素材管理</h2></div><button id="openLibrary">打开画布素材库</button></div><p class="panel-intro">素材可预览、下载、添加到画布或加入演示。画布移除记录后，原文件仍保留在这里。</p><details id="assetIssues" class="issues" hidden><summary></summary><div></div></details><div class="asset-filters"><input id="assetSearch" type="search" placeholder="搜索素材名称" aria-label="搜索素材名称"><select id="assetFilter" aria-label="筛选素材类型"><option value="all">全部素材</option><option value="image">图片</option><option value="video">视频</option><option value="issues">有异常</option></select><label><input type="checkbox" id="showAuxiliary"> 包含预览文件</label></div><div id="assetList" class="asset-list"><div class="loading">加载素材清单…</div></div><div class="pagination"><span id="assetCount"></span><button id="prevAssetPage">上一页</button><button id="nextAssetPage">下一页</button></div></article>
+      <aside class="side-stack">
+        <article class="panel backup-panel"><p class="eyebrow">RECOVERY</p><h2>工作区备份</h2><p>保存当前浏览器草稿、画布位置、媒体节点、冻结版本和本机素材。不会读取 AI 连接密钥。</p><div id="browserSummary" class="browser-summary">正在检查当前浏览器…</div><button id="createBackup" class="primary">生成完整备份</button><button id="downloadBrowserData">仅下载项目数据</button><div id="backupState" role="status" aria-live="polite"></div><small>完整备份最多含 500 MB 素材，附恢复说明。支持通过编辑器导入 PPT 项目；全部画布与历史记录暂不支持一键还原。</small></article>
+        <article class="panel quick-panel"><p class="eyebrow">QUICK LINKS</p><h2>管理入口</h2><a href="./?view=present">HTML PPT 编辑器 <span>↗</span></a><a href="./?view=present&amp;open=ai-settings">配置文本 AI 连接 <span>↗</span></a><a href="./?view=present&amp;open=versions">发布检查与冻结版本 <span>↗</span></a><p>AI 密钥仅在编辑页面内存中保留，离开或刷新该页面后需重新填写。</p></article>
+      </aside>
+    </section>
+    <section class="panel activity-panel"><div class="panel-head"><div><p class="eyebrow">ACTIVITY</p><h2>最近操作</h2></div><span class="muted">最近 100 条接口结果，服务重启后清空</span></div><div id="eventList" class="event-list"><div class="loading">加载操作记录…</div></div></section>
+    <footer>Canvas OS · 管理员控制台 · 本页不会读取或保存模型 API Key</footer>
+  </main>
+  <dialog id="assetPreview" class="asset-preview"><div class="preview-head"><strong id="previewName"></strong><button id="closePreview">关闭预览</button></div><div id="previewMedia" class="preview-media"></div></dialog>
+  <script src="./account-client.js"></script><script src="./media-runtime.js"></script><script src="./admin-console.js"></script>
+</body>
+</html>

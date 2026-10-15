@@ -1,0 +1,11 @@
+# Replace the hostname. Run Caddy on the SAME machine as the loopback app.
+canvas.example.com {
+    request_body {
+        max_size 105MB
+    }
+    reverse_proxy 127.0.0.1:4195 {
+        transport http {
+            response_header_timeout 300s
+        }
+    }
+}

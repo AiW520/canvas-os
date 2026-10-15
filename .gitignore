@@ -1,0 +1,41 @@
+# Local account database and shared media
+.canvas-auth/
+.canvas-assets/
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+
+# Credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies and interpreter caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated previews, exports and document extraction
+/canvas-os-*.png
+/_docx_media/
+/_docx_render/
+/qa/*
+!/qa/visual-review.cjs
+# Used as an image fixture by backend and browser regressions
+!/qa/cinematic-cover.png
+*.log
+playwright-report/
+test-results/
+
+# Editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

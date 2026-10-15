@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080a11" />
+    <title>Canvas OS — 无限工作空间</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./presentation.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="rail">
+        <div class="brand-mark" aria-label="Canvas OS">
+          <span class="brand-orbit"></span>
+          <span class="brand-core">C</span>
+        </div>
+        <nav class="rail-nav" aria-label="主导航">
+          <button class="rail-btn active" title="画布" data-rail="canvas">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h6.5V11H5zM12.5 4.5H19V11h-6.5zM5 12.5h6.5V19H5zM12.5 12.5H19V19h-6.5z"/></svg>
+          </button>
+          <button class="rail-btn" title="资料库" data-rail="library">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.2A2.2 2.2 0 0 1 7.2 3h9.6A2.2 2.2 0 0 1 19 5.2v13.6a2.2 2.2 0 0 1-2.2 2.2H7.2A2.2 2.2 0 0 1 5 18.8V5.2Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+          </button>
+          <button class="rail-btn" title="智能体" data-rail="agents">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8v3.4M6.6 7.2 9 9.6M17.4 7.2 15 9.6M4.5 13h3M16.5 13h3M8 13a4 4 0 0 1 8 0v4.2H8V13Z"/><circle cx="10.2" cy="13" r=".7"/><circle cx="13.8" cy="13" r=".7"/><path d="M10 17.2v2h4v-2"/></svg>
+          </button>
+          <button class="rail-btn" title="历史" data-rail="history">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.7"/><path d="M4 4.5v4.2h4.2M12 8v4.4l3 1.8"/></svg>
+          </button>
+        </nav>
+        <div class="rail-bottom">
+          <button class="rail-btn" id="adminBtn" title="管理员控制台" aria-label="管理员控制台">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 1 .4.6 2.1 1.6.9 2.1-.3 1.2 1.8-1.2 1.8.1 1.8 1.2 1.8-1.2 1.8-2.1-.3-1.6.9-.6 2.1-2 .4-1.4-1.7H9l-2.1.3-1.2-1.8L7 14.3l-.1-1.8-1.2-1.8 1.2-1.8L9 9.2l1.6-.9.6-2.1L12 4Z"/><circle cx="12" cy="12" r="2.3"/></svg>
+          </button>
+          <div class="avatar">Z</div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="project-crumb">
+            <div class="tiny-logo"><span></span></div>
+            <span class="project-name">Atlas Fitness</span>
+            <span class="crumb-slash">/</span>
+            <span class="project-section">工作空间</span>
+            <button class="chevron" aria-label="Open project menu">⌄</button>
+          </div>
+
+          <div class="mode-switch" role="tablist" aria-label="工作空间模式">
+            <button class="mode-btn active" data-mode="think" role="tab">思考</button>
+            <button class="mode-btn" data-mode="build" role="tab">构建</button>
+            <button class="mode-btn" data-mode="present" role="tab">演示</button>
+          </div>
+
+          <div class="top-actions">
+            <div class="live-status"><span class="live-dot"></span><span id="syncLabel">本机工作区</span></div>
+            <button class="top-action" id="runBtn"><span class="play-icon">▶</span> 播放演示</button>
+            <button class="top-action primary" id="presentBtn"><span class="present-icon">◈</span> 演示</button>
+            <button class="share-btn" id="shareBtn"><span>分享</span><span class="share-avatars"><i>J</i><i>M</i><i>+</i></span></button>
+          </div>
+        </header>
+
+        <section class="canvas-stage" id="canvasStage" aria-label="无限画布">
+          <div class="canvas-toolbar">
+            <div class="canvas-meta"><span class="meta-dot"></span><span id="canvasMeta">8 个对象</span><span class="meta-divider"></span><span id="connectionMeta">8 条连接</span></div>
+            <button class="context-chip" id="contextBtn"><span class="pin-icon">⌖</span> 上下文视图 <span class="context-count">3</span></button>
+          </div>
+
+          <div class="zoom-label"><span>语义缩放</span><strong id="zoomValue">68%</strong></div>
+
+          <svg class="edge-layer" aria-hidden="true">
+            <defs>
+              <linearGradient id="edgePurple" x1="0" x2="1"><stop offset="0" stop-color="#5555ee"/><stop offset="1" stop-color="#8b6eff"/></linearGradient>
+              <linearGradient id="edgeBlue" x1="0" x2="1"><stop offset="0" stop-color="#3c9fe6"/><stop offset="1" stop-color="#6b72ef"/></linearGradient>
+              <linearGradient id="edgeGreen" x1="0" x2="1"><stop offset="0" stop-color="#35b894"/><stop offset="1" stop-color="#70dba4"/></linearGradient>
+              <filter id="edgeGlow"><feGaussianBlur stdDeviation="2.4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <g id="edges"></g>
+          </svg>
+
+          <div class="canvas-content" id="canvasContent">
+            <div class="cluster-label research-label">研究 / 信号</div>
+            <div class="cluster-label build-label">构建 / 产品</div>
+            <div class="cluster-label runtime-label">运行 / 实时</div>
+
+            <article class="object-card source-card" data-id="research" data-kind="研究" data-title="市场研究" data-color="blue">
+              <div class="object-head"><span class="object-icon blue-icon">⌁</span><span class="object-type">研究</span><span class="object-menu">•••</span></div>
+              <h3>市场研究</h3>
+              <p>18 条信号 · 4 个来源</p>
+              <div class="object-foot"><span class="tag blue-tag">来源</span><span class="card-time">8 分钟前</span></div>
+            </article>
+
+            <article class="object-card strategy-card selected" data-id="strategy" data-kind="决策" data-title="产品策略" data-color="purple">
+              <div class="object-head"><span class="object-icon purple-icon">✦</span><span class="object-type">决策</span><span class="object-menu">•••</span></div>
+              <h3>产品策略</h3>
+              <p>“从习惯走向健康。”</p>
+              <div class="object-foot"><span class="tag purple-tag">决策</span><span class="card-time">刚刚</span></div>
+            </article>
+
+            <article class="object-card business-card" data-id="business" data-kind="商业模型" data-title="商业模型" data-color="orange">
+              <div class="object-head"><span class="object-icon orange-icon">◒</span><span class="object-type">商业模型</span><span class="object-menu">•••</span></div>
+              <h3>商业模型</h3>
+              <p>订阅 + 教练服务</p>
+              <div class="object-foot"><span class="tag orange-tag">模型</span><span class="card-time">12 分钟前</span></div>
+            </article>
+
+            <article class="object-card product-card" data-id="product" data-kind="产品" data-title="自适应产品" data-color="purple">
+              <div class="object-head"><span class="object-icon purple-icon">◇</span><span class="object-type">产品</span><span class="object-menu">•••</span></div>
+              <h3>自适应产品</h3>
+              <p>个人健康系统</p>
+              <div class="object-foot"><span class="tag purple-tag">产品</span><span class="card-time">已同步</span></div>
+            </article>
+
+            <article class="object-card pitch-card" data-id="pitch" data-kind="场景" data-title="路演故事" data-color="blue">
+              <div class="object-head"><span class="object-icon blue-icon">▣</span><span class="object-type">场景</span><span class="object-menu">•••</span></div>
+              <h3>路演故事</h3>
+              <p>8 个场景 · 06:42</p>
+              <div class="object-foot"><span class="tag cyan-tag">场景</span><span class="card-time">实时</span></div>
+            </article>
+
+            <article class="object-card roadmap-card" data-id="roadmap" data-kind="工作流" data-title="产品路线图" data-color="green">
+              <div class="object-head"><span class="object-icon green-icon">↗</span><span class="object-type">工作流</span><span class="object-menu">•••</span></div>
+              <h3>产品路线图</h3>
+              <p>Q3 发布计划</p>
+              <div class="object-foot"><span class="tag green-tag">运行中</span><span class="card-time">2 个任务</span></div>
+            </article>
+
+            <article class="object-card app-card" data-id="app" data-kind="实时应用" data-title="用户群组看板" data-color="green">
+              <div class="object-head"><span class="object-icon green-icon">▦</span><span class="object-type">实时应用</span><span class="object-menu">•••</span></div>
+              <h3>用户群组看板</h3>
+              <p>React 预览 · v0.8.4</p>
+              <div class="object-foot"><span class="tag green-tag">实时</span><span class="card-time">健康</span></div>
+            </article>
+
+            <article class="object-card data-card" data-id="data" data-kind="数据库" data-title="成员数据库" data-color="green">
+              <div class="object-head"><span class="object-icon green-icon">◫</span><span class="object-type">数据库</span><span class="object-menu">•••</span></div>
+              <h3>成员</h3>
+              <p>1.24 万行 · 4 张表</p>
+              <div class="object-foot"><span class="tag green-tag">已同步</span><span class="card-time">2 分钟前</span></div>
+            </article>
+
+          </div>
+
+          <div class="canvas-selection" id="selectionOutline" aria-hidden="true"></div>
+
+          <div class="canvas-footer">
+            <div class="command-wrap">
+              <div class="command-glow"></div>
+              <button class="command-input" id="commandInput" aria-label="询问 Canvas OS">
+                <span class="sparkle">✦</span>
+                <span class="command-placeholder">询问、创建、连接、自动化、演示…</span>
+                <span class="shortcut">⌘ K</span>
+              </button>
+              <div class="command-suggestions" id="commandSuggestions">
+                <button data-command="创建新对象"><span>✦</span> 创建新对象</button>
+                <button data-command="解释选中上下文"><span>◌</span> 解释选中上下文</button>
+                <button data-command="构建路演故事"><span>▣</span> 构建路演故事</button>
+                <button data-command="运行产品图谱"><span>▶</span> 运行产品图谱</button>
+              </div>
+            </div>
+            <div class="footer-hint"><span class="hint-key">/</span><span>命令</span><span class="hint-key">Space</span><span>平移画布</span></div>
+          </div>
+
+          <div class="canvas-controls">
+            <button id="zoomOut" aria-label="缩小">−</button>
+            <button id="zoomReset" class="zoom-percent">68%</button>
+            <button id="zoomIn" aria-label="放大">+</button>
+            <span class="control-divider"></span>
+            <button aria-label="适应画布">⌗</button>
+          </div>
+        </section>
+      </main>
+
+      <aside class="inspector" id="inspector">
+        <div class="inspector-head">
+          <div>
+            <span class="eyebrow">已选对象</span>
+            <h2 id="inspectorTitle">产品策略</h2>
+          </div>
+          <button class="close-inspector" id="closeInspector" aria-label="关闭检查器">×</button>
+        </div>
+        <div class="inspector-tabs"><button class="inspector-tab active" data-tab="overview">概览</button><button class="inspector-tab" data-tab="activity">活动 <span>4</span></button><button class="inspector-tab" data-tab="trace">追踪</button></div>
+        <div class="inspector-body" id="inspectorBody">
+          <div class="inspector-type-row"><span class="inspector-icon purple-icon">✦</span><div><strong id="inspectorKind">决策</strong><span>刚刚更新</span></div><span class="inspector-status"><i></i> 实时</span></div>
+          <div class="inspector-section"><span class="section-label">意图</span><p id="inspectorIntent">把分散的健康数据转成用户真正能坚持的自适应每日计划。</p></div>
+          <div class="inspector-section"><span class="section-label">关联上下文</span><div class="context-list"><button><span class="mini-dot blue"></span>市场研究 <em>18 条信号</em></button><button><span class="mini-dot orange"></span>商业模型 <em>2 个输入</em></button><button><span class="mini-dot green"></span>用户群组看板 <em>实时</em></button></div></div>
+          <div class="inspector-section"><span class="section-label">AI 建议</span><div class="suggestion"><span class="suggestion-icon">✧</span><p>下一轮构建优先完成自适应引导流程。</p><button id="applySuggestion">应用</button></div></div>
+          <div class="inspector-actions"><button id="editObject">编辑模块</button><button id="connectObject">连接</button><button id="moreObject">•••</button></div>
+        </div>
+        <div class="inspector-collapsed"><span>运行图谱</span><span class="collapse-dot"></span><span>3 个节点实时运行</span><button>⌄</button></div>
+      </aside>
+    </div>
+
+    <div class="toast" id="toast" role="status"><span class="toast-icon">✓</span><span id="toastMessage">更改已同步</span></div>
+
+    <div class="presentation-overlay" id="presentationOverlay" aria-hidden="true">
+      <header class="presentation-topbar">
+        <div class="presentation-brand"><span class="tiny-logo"><span></span></span> Atlas 产品故事 <span class="presentation-mode-badge">HTML 演示</span></div>
+        <div class="presentation-top-actions">
+          <span class="presentation-save-state" id="presentationSaveState" role="status">示例草稿</span>
+          <button id="toggleComposer">编辑场景</button><button id="togglePromptEdit" aria-pressed="false">点选修改</button><button id="fullscreenScene">全屏</button>
+          <button id="publishPresentation">版本与发布</button><button id="exportPresentation">导出 HTML</button>
+          <button id="backupDeck">备份项目</button><button id="importDeck">导入</button><button id="exitPresentation">返回画布</button>
+        </div>
+      </header>
+      <div class="presentation-body">
+        <aside class="story-path"><div class="composer-eyebrow">故事路径</div>
+          <div class="story-path-head"><strong>Atlas 产品故事</strong><button id="addScene" aria-label="新增场景">＋</button></div>
+          <div class="scene-tools"><button id="sceneUp">上移</button><button id="sceneDown">下移</button><button id="duplicateScene">复制</button><button id="deleteScene">删除</button><button id="undoScene" title="撤销（Ctrl / ⌘ + Z）">撤销</button><button id="redoScene" title="重做（Ctrl / ⌘ + Shift + Z，或 Ctrl + Y）">重做</button></div>
+          <div id="sceneList" class="scene-list"></div><p class="story-path-foot" id="storySummary"></p>
+        </aside>
+        <div class="presentation-workspace">
+          <div class="presentation-stage"><article id="slideRoot" class="slide"></article></div>
+          <div class="presentation-controls"><button id="prevScene" aria-label="上一个场景">‹</button><button class="play-scene" id="playScene">自动播放</button><button id="nextScene" aria-label="下一个场景">›</button><div class="scene-progress-track"><i id="sceneProgressBar"></i></div><span class="scene-counter" id="sceneCounter"></span><span class="scene-timer" id="sceneTimer"></span><button id="speakerNotesBtn">讲稿</button></div>
+        </div>
+        <aside class="scene-inspector">
+          <div class="composer-eyebrow">场景属性</div>
+          <label>场景名称<input id="sceneTitleInput" maxlength="30" /></label>
+          <label>主题短句<input id="sceneKickerInput" maxlength="45" /></label>
+          <label>大标题（回车换行）<textarea id="sceneHeadlineInput" maxlength="70" rows="3"></textarea></label>
+          <label>正文<textarea id="sceneCopyInput" maxlength="200" rows="4"></textarea></label>
+          <div class="paired"><label>版式<select id="sceneLayoutInput"><option value="cover">封面</option><option value="story">行动流程</option><option value="chart">数据图表</option><option value="live">交互图表</option><option value="media">图片 / 视频</option></select></label><label>主题<select id="sceneThemeInput"><option value="lilac">晨光紫</option><option value="midnight">午夜蓝</option><option value="sage">鼠尾草绿</option></select></label></div>
+          <label>媒体显示<select id="sceneMediaFit"><option value="contain">完整显示</option><option value="cover">裁切填充</option></select></label>
+          <label>过渡<select id="sceneTransitionInput"><option value="fade">淡入</option><option value="focus">聚焦</option><option value="none">无动画</option></select></label>
+          <label>时长 <span id="sceneDurationValue"></span><input type="range" id="sceneDurationInput" min="5" max="90" /></label>
+          <label>指标（数值 / 标签）</label><div class="metric-fields" id="metricFields"></div>
+          <div class="binding-card"><div><strong>关联对象：用户群组看板</strong><small>共享本地示例数据，所有图表场景同步更新。</small></div></div>
+          <div class="paired"><label>初始成员<input id="objectBaseInput" type="number" min="1" max="10000000" /></label><label>月增长率 %<input id="objectGrowthInput" type="number" min="0" max="50" /></label></div>
+          <label>讲稿备注<textarea id="sceneNotesInput" maxlength="4000" rows="4"></textarea></label>
+          <div class="scene-preflight" id="scenePreflight" aria-label="当前场景检查"></div>
+          <button class="scene-action" id="saveSceneBtn">保存草稿</button><div class="scene-inspector-foot">保存在当前浏览器。建议定期备份项目。</div>
+        </aside>
+      </div>
+      <div class="speaker-notes" id="speakerNotes"><span class="composer-eyebrow">讲稿仅在编辑器显示</span><p id="speakerNotesText"></p></div>
+
+    </div>
+    <dialog id="releaseDialog" class="deck-dialog" aria-labelledby="releaseTitle">
+      <h2 id="releaseTitle">版本与发布</h2>
+      <p>创建冻结版本，先在本机检查，再导出 HTML 交付。当前尚未连接公网托管服务。</p>
+      <p id="releaseStatus" role="status"></p>
+      <div id="releaseIssues" class="release-issues" aria-label="整份演示检查结果"></div>
+      <button id="exportCheckedDeck">导出当前 HTML</button><button id="freezeDeck">创建本地版本</button><button id="closeReleaseDialog">关闭</button>
+      <div id="releaseList"></div>
+    </dialog>
+    <input id="deckFileInput" type="file" accept=".json,application/json" hidden />
+
+    <div class="palette-backdrop" id="paletteBackdrop"></div>
+    <div class="command-palette" id="commandPalette" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div class="palette-search"><span>⌘ K</span><input id="paletteInput" placeholder="你想完成什么？" /></div>
+      <div class="palette-grid"><button data-action="seed"><b>✦</b><span><strong>播种一个想法</strong><small>把意图变成结构化世界</small></span><kbd>↵</kbd></button><button data-action="research"><b>⌁</b><span><strong>研究上下文</strong><small>发现此区域的关联信号</small></span></button><button data-action="build"><b>⌘</b><span><strong>构建模块</strong><small>创建实时界面或工作流</small></span></button><button data-action="present"><b>◈</b><span><strong>创建场景</strong><small>编排空间演示</small></span></button></div>
+      <div class="palette-footer"><span><kbd>↑</kbd><kbd>↓</kbd> 导航</span><span><kbd>↵</kbd> 选择</span><span><kbd>Esc</kbd> 关闭</span></div>
+    </div>
+
+    <script src="./account-client.js"></script>
+    <script src="./media-runtime.js"></script>
+    <script src="./scene-runtime.js"></script>
+    <script src="./scene-defaults.js"></script>
+    <script src="./app.js"></script>
+    <script src="./prompt-editor.js"></script>
+    <script src="./presentation.js"></script>
+    <script src="./canvas-media.js"></script>
+  </body>
+</html>

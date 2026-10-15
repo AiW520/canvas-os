@@ -1,0 +1,64 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const os=require('node:os');
+const path=require('node:path');
+const {spawn}=require('node:child_process');
+const {chromium}=require('playwright');
+
+(async()=>{
+  const temp=await fs.mkdtemp(path.join(os.tmpdir(),'canvas-auth-browser-'));
+  const port=4192,base=`http://127.0.0.1:${port}`;
+  const service=spawn('python',['server.py','--port',String(port)],{cwd:process.cwd(),windowsHide:true,env:{...process.env,CANVAS_AUTH_DB:path.join(temp,'auth.sqlite3'),CANVAS_ASSET_DIR:path.join(temp,'assets')}});
+  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+  const errors=[];
+  try{
+    for(let i=0;i<80;i++){try{if((await fetch(base+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+    const admin=await browser.newContext({viewport:{width:1440,height:900}}),page=await admin.newPage();page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(base+'/?view=present');await page.waitForURL(/login\.html/);
+    assert.equal(new URL(page.url()).searchParams.get('next'),'/?view=present');
+    await page.locator('#registerTab').click();await page.locator('#username').fill('owner');await page.locator('#name').fill('测试管理员');
+    await page.locator('#password').fill('Correct-account-password!');await page.locator('#confirm').fill('Correct-account-password!');
+    await page.locator('#submitAuth').click();await page.waitForURL(/view=present/);await page.locator('#accountBtn').waitFor();
+    assert.equal(await page.locator('#adminBtn').isVisible(),true);
+    await page.goto(base+'/admin.html');await page.waitForURL(/admin\.html/);await page.locator('.user-row').waitFor();
+    assert.match(await page.locator('#userList').innerText(),/测试管理员/);
+    const member=await browser.newContext({viewport:{width:390,height:844}}),memberPage=await member.newPage();memberPage.on('pageerror',e=>errors.push(e.message));
+    await memberPage.goto(base+'/');await memberPage.waitForURL(/login\.html/);await memberPage.locator('#registerTab').click();
+    await memberPage.locator('#username').fill('member');await memberPage.locator('#name').fill('普通成员');
+    await memberPage.locator('#password').fill('Member-account-password!');await memberPage.locator('#confirm').fill('Member-account-password!');
+    await memberPage.locator('#submitAuth').click();await memberPage.waitForURL(base+'/');
+    await memberPage.locator('#accountBtn').waitFor();await memberPage.locator('#adminBtn').waitFor({state:'hidden'});assert.equal(await memberPage.locator('#adminBtn').isVisible(),false);
+    await page.locator('#refreshAdmin').click();await page.locator('.user-row').nth(1).waitFor();
+    await page.locator('#userSearch').fill('member');await page.waitForFunction(()=>document.querySelectorAll('.user-row').length===1&&document.querySelector('.user-row')?.textContent.includes('普通成员'));
+    await page.locator('#userSearch').fill('');await page.waitForFunction(()=>document.querySelectorAll('.user-row').length===2);
+    await page.locator('#toggleRegistration').click();await page.waitForFunction(()=>document.getElementById('toggleRegistration').textContent.includes('开放注册'));
+    const guest=await browser.newContext();const guestPage=await guest.newPage();await guestPage.goto(base+'/login.html');assert.equal(await guestPage.locator('#registerTab').isDisabled(),true);
+    await page.locator('#toggleRegistration').click();await page.waitForFunction(()=>document.getElementById('toggleRegistration').textContent.includes('关闭注册'));
+    page.on('dialog',d=>d.accept());
+    await page.locator('.user-row').filter({hasText:'普通成员'}).getByRole('button',{name:'设为管理员'}).click();
+    await page.waitForFunction(()=>document.querySelector('.user-row[data-user-id] .role-pill.admin')&&document.querySelectorAll('.role-pill.admin').length===2);
+    await memberPage.bringToFront();await memberPage.reload();await memberPage.waitForURL(/login\.html/);
+    await memberPage.locator('#username').fill('member');await memberPage.locator('#password').fill('Member-account-password!');await memberPage.locator('#submitAuth').click();await memberPage.waitForURL(base+'/');
+    await memberPage.locator('#adminBtn').waitFor({state:'visible'});
+    await page.locator('.user-row').filter({hasText:'普通成员'}).getByRole('button',{name:'设为成员'}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.role-pill.admin').length===1);
+    await memberPage.reload();await memberPage.waitForURL(/login\.html/);
+    await page.locator('.user-row').filter({hasText:'普通成员'}).getByRole('button',{name:'停用账号'}).click();
+    await page.waitForFunction(()=>document.querySelector('.user-row.inactive'));
+    await memberPage.locator('#username').fill('member');await memberPage.locator('#password').fill('Member-account-password!');await memberPage.locator('#submitAuth').click();
+    await memberPage.locator('#authMessage').getByText(/停用/).waitFor();
+    await page.locator('.user-row').filter({hasText:'普通成员'}).getByRole('button',{name:'启用账号'}).click();
+    await page.waitForFunction(()=>!document.querySelector('.user-row.inactive'));
+    await page.locator('#currentUser').click();await page.locator('#oldPassword').fill('Correct-account-password!');
+    await page.locator('#newPassword').fill('Updated-account-password!');await page.locator('#confirmPassword').fill('Updated-account-password!');
+    await page.locator('#passwordForm').getByRole('button',{name:'保存新密码'}).click();await page.locator('#passwordState').getByText(/已修改/).waitFor();
+    await page.locator('#closePassword').click();await page.locator('#logoutBtn').click();await page.waitForURL(/login\.html/);
+    await page.goto(base+'/login.html?next=admin.html');await page.locator('#username').fill('owner');await page.locator('#password').fill('Updated-account-password!');await page.locator('#submitAuth').click();await page.waitForURL(/admin\.html$/);
+    await page.locator('.user-row').first().waitFor();
+    await page.screenshot({path:'qa/auth-admin-desktop.png',fullPage:true});
+    await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.screenshot({path:'qa/auth-admin-mobile.png',fullPage:true});
+    await guestPage.setViewportSize({width:390,height:844});await guestPage.reload();await guestPage.screenshot({path:'qa/auth-login-mobile.png',fullPage:true});
+  }finally{await browser.close();service.kill();await fs.rm(temp,{recursive:true,force:true});}
+  assert.deepEqual(errors,[]);console.log('PASS: login and registration, role-aware navigation, user search, registration controls, responsive account entry.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

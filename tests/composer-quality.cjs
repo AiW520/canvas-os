@@ -1,0 +1,125 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+const { chromium } = require('playwright');
+
+(async () => {
+  const isolated=await require('./auth-helper.cjs').startIsolated();
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+  const errors = [];
+  const base = isolated.url;
+  const open = async (viewport = { width: 1600, height: 1000 }) => {
+    const page = await browser.newPage({ viewport });
+    page.on('pageerror', error => errors.push(error.message));
+    await isolated.login(page);
+    await page.goto(`${base}?view=present`);
+    return page;
+  };
+  try {
+    await fs.mkdir(path.resolve('qa'), { recursive: true });
+    const history = await open();
+    assert.equal(await history.locator('#undoScene').isDisabled(), true);
+    await history.locator('#sceneTitleInput').focus();
+    await history.locator('#sceneNotesInput').focus();
+    assert.equal(await history.locator('#undoScene').isDisabled(), true, 'focus without editing must not create history');
+    const originalTitle = await history.locator('#sceneTitleInput').inputValue();
+    await history.locator('#sceneTitleInput').fill('连续编辑');
+    await history.locator('#sceneTitleInput').pressSequentially('ABC');
+    await history.keyboard.press('Control+z');
+    assert.equal(await history.locator('#sceneTitleInput').inputValue(), originalTitle, 'continuous typing should undo in one step');
+    assert.equal(await history.locator('#undoScene').isDisabled(), true);
+    await history.locator('#sceneNotesInput').focus();
+    await history.locator('#sceneTitleInput').focus();
+    assert.equal(await history.locator('#redoScene').isDisabled(), false, 'focus must preserve redo');
+    await history.keyboard.press('Control+Shift+z');
+    assert.equal(await history.locator('#sceneTitleInput').inputValue(), '连续编辑ABC');
+    await history.keyboard.press('Control+z');
+    await history.keyboard.press('Control+y');
+    assert.equal(await history.locator('#sceneTitleInput').inputValue(), '连续编辑ABC');
+    await history.keyboard.press('Control+z');
+    await history.locator('#sceneTitleInput').fill('新的编辑分支');
+    assert.equal(await history.locator('#redoScene').isDisabled(), true, 'new edits must invalidate redo');
+    const originalMetric = await history.locator('#metricFields input').first().inputValue();
+    await history.locator('#metricFields input').first().fill('55');
+    await history.locator('#metricFields input').first().pressSequentially('123');
+    await history.keyboard.press('Control+z');
+    assert.equal(await history.locator('#metricFields input').first().inputValue(), originalMetric);
+    await history.keyboard.press('Control+y');
+    assert.equal(await history.locator('#metricFields input').first().inputValue(), '55123');
+    await history.locator('.scene-item').nth(4).click();
+    const originalGrowth = await history.locator('.live-control input').inputValue();
+    await history.locator('.live-control input').fill('35');
+    await history.locator('.live-control input').press('ArrowRight');
+    await history.locator('.live-control input').press('ArrowRight');
+    assert.equal(await history.locator('.live-control input').inputValue(), '37');
+    await history.keyboard.press('Control+z');
+    assert.equal(await history.locator('.live-control input').inputValue(), originalGrowth, 'live object undo must capture value before mutation');
+    await history.keyboard.press('Control+y');
+    assert.equal(await history.locator('.live-control input').inputValue(), '37');
+    assert.match(await history.locator('[data-id=app] > p').innerText(), /37%/);
+    await history.close();
+
+    const preflight = await open();
+    await preflight.locator('.scene-item').first().click();
+    await preflight.locator('#sceneTitleInput').fill('');
+    await preflight.locator('#sceneNotesInput').fill('');
+    assert.match(await preflight.locator('#scenePreflight strong').innerText(), /1 项必须修复/);
+    assert.equal(await preflight.locator('#scenePreflight span').count(), 2, 'issues must not be duplicated');
+    await preflight.click('#nextScene');
+    assert.match(await preflight.locator('#scenePreflight').innerText(), /可以发布/);
+    let downloads = 0;
+    preflight.on('download', () => downloads++);
+    await preflight.click('#exportPresentation');
+    assert.equal(await preflight.locator('#releaseDialog').evaluate(e => e.open), true);
+    assert.match(await preflight.locator('#releaseStatus').innerText(), /1 项必须修复/);
+    assert.equal(await preflight.locator('#exportCheckedDeck').isDisabled(), true);
+    assert.equal(await preflight.locator('#freezeDeck').isEnabled(), true, 'unfinished drafts must remain recoverable');
+    assert.equal(downloads, 0, 'invalid deck must not export');
+    await preflight.screenshot({ path: 'qa/preflight-issues.png' });
+    await preflight.locator('#releaseIssues button.error').click();
+    assert.equal(await preflight.locator('#releaseDialog').evaluate(e => e.open), false);
+    assert.match(await preflight.locator('#sceneCounter').innerText(), /01/);
+    assert.equal(await preflight.locator('#sceneTitleInput').inputValue(), '');
+    await preflight.locator('#sceneTitleInput').fill('已修复的场景');
+    await preflight.click('#publishPresentation');
+    assert.match(await preflight.locator('#releaseStatus').innerText(), /通过，有 1 项建议/);
+    assert.equal(await preflight.locator('#exportCheckedDeck').isEnabled(), true, 'speaker notes must remain optional');
+    assert.match(await preflight.locator('#releaseDialog').innerText(), /尚未连接公网托管服务/);
+    const downloadPromise = preflight.waitForEvent('download');
+    await preflight.click('#exportCheckedDeck');
+    const download = await downloadPromise;
+    const filePath = path.resolve('qa/checked-export.html');
+    await download.saveAs(filePath);
+    await preflight.close();
+
+    for (const [width, height] of [[1600,1000], [1280,800], [390,844], [320,740]]) {
+      const page = await open({ width, height });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${width}px page must not overflow horizontally`);
+      assert.equal(await page.locator('.presentation-body').evaluate(e => e.scrollWidth <= e.clientWidth), true);
+      if (width <= 760) {
+        await page.locator('.scene-item').last().click();
+        assert.match(await page.locator('#sceneCounter').innerText(), /08/);
+        await page.locator('#sceneNotesInput').fill('手机讲稿');
+        await page.click('#undoScene');
+        assert.notEqual(await page.locator('#sceneNotesInput').inputValue(), '手机讲稿');
+        await page.locator('.scene-item').nth(3).click();
+        await page.locator('.presentation-body').evaluate(e => e.scrollTop = 0);
+      }
+      const aspect = await page.locator('#slideRoot').evaluate(e => { const r = e.getBoundingClientRect(); return r.width / r.height; });
+      assert.ok(Math.abs(aspect - 16/9) < .02, `${width}px stage must preserve 16:9`);
+      await page.screenshot({ path: `qa/composer-ready-${width}.png`, fullPage: true });
+      await page.close();
+    }
+    const offline = await browser.newContext({ offline: true, viewport: { width: 320, height: 740 } });
+    const player = await offline.newPage();
+    player.on('pageerror', error => errors.push(error.message));
+    await player.goto(pathToFileURL(filePath).href);
+    assert.equal(await player.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile offline controls must fit');
+    await player.click('#playerNext');
+    assert.equal(await player.locator('#playerCounter').innerText(), '2 / 8');
+    await offline.close();
+    assert.deepEqual(errors, []);
+    console.log('PASS: grouped undo/redo, shortcuts in fields, redo invalidation, live data history, whole-deck preflight, issue navigation, checked export, 320–1600px responsive layouts and mobile offline player.');
+  } finally { await browser.close();isolated.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });
